@@ -65,24 +65,6 @@ def calc_macd(close):
 # 型態判斷
 # ======================
 
-def detect_n_pattern(df):
-    close = df["Close"]
-    if len(close) < 60:
-        return False
-
-    old_high = close.iloc[-60:-30].max()
-    pullback_low = close.iloc[-30:-10].min()
-    now = close.iloc[-1]
-
-    if old_high <= 0:
-        return False
-
-    pullback_ok = pullback_low < old_high * 0.95
-    breakout_ok = now > old_high * 1.01
-
-    return pullback_ok and breakout_ok
-
-
 def detect_round_bottom(df):
     if len(df) < 80:
         return False
@@ -90,15 +72,32 @@ def detect_round_bottom(df):
     close = df["Close"]
     ma20 = close.rolling(20).mean()
 
-    left = close.iloc[-80:-50].mean()
-    middle = close.iloc[-50:-20].mean()
-    right = close.iloc[-20:].mean()
+    left = close.iloc[-80:-55].mean()
+    bottom = close.iloc[-55:-25].mean()
+    right = close.iloc[-25:].mean()
 
-    ma20_up = ma20.iloc[-1] > ma20.iloc[-10]
-    neckline = close.iloc[-60:-10].max()
-    breakout = close.iloc[-1] >= neckline * 0.98
+    bottom_lower = bottom < left * 0.95
+    right_recover = right > bottom * 1.05
+    ma20_turn_up = ma20.iloc[-1] > ma20.iloc[-10]
 
-    return middle < left and right > middle and ma20_up and breakout
+    return bottom_lower and right_recover and ma20_turn_up
+
+def detect_n_pattern(df):
+    if len(df) < 50:
+        return False
+
+    close = df["Close"]
+
+    left_high = close.iloc[-50:-25].max()
+    pullback_low = close.iloc[-25:-8].min()
+    recent_close = close.iloc[-1]
+
+    pullback_depth = (left_high - pullback_low) / left_high
+
+    has_pullback = 0.03 <= pullback_depth <= 0.25
+    back_near_high = recent_close >= left_high * 0.97
+
+    return has_pullback and back_near_high
 
 
 def detect_kd_top_divergence(df):
